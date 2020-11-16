@@ -69,7 +69,10 @@
     "react": "17.0.1",
     "react-refresh": "^0.9.0",
     "react-test-renderer": "17.0.1",
+<<<<<<< HEAD
     "scheduler": "^0.19.1",
+=======
+>>>>>>> fix merge conflicts in package.json for relay-experimental
     "signedsource": "^1.0.0",
     "webpack": "^4.30.0",
     "webpack-stream": "^5.1.1",
