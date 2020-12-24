@@ -180,15 +180,6 @@ const builds = [
         target: 'node',
         noMinify: true, // Note: uglify can't yet handle modern JS
       },
-      {
-        entry: 'index.js',
-        output: 'relay-compiler-noinvariant',
-        libraryName: 'RelayCompiler',
-        libraryTarget: 'commonjs2',
-        target: 'node',
-        noMinify: true, // Note: uglify can't yet handle modern JS
-        noInvariant: true,
-      },
     ],
     bins: [
       {
@@ -197,12 +188,30 @@ const builds = [
         libraryTarget: 'commonjs2',
         target: 'node',
       },
+    ],
+  },
+  {
+    package: 'relay-compiler-noinvariant',
+    sourcePackage: 'relay-compiler',
+    exports: {
+      index: 'index.js',
+    },
+    bundles: [
       {
-        entry: 'RelayCompilerBin.js',
-        output: 'relay-compiler-noinvariant',
+        entry: 'index.js',
+        output: 'relay-compiler',
+        libraryName: 'RelayCompiler',
         libraryTarget: 'commonjs2',
         target: 'node',
-        noinvariant: true,
+        noMinify: true, // Note: uglify can't yet handle modern JS
+      },
+    ],
+    bins: [
+      {
+        entry: 'RelayCompilerBin.js',
+        output: 'relay-compiler',
+        libraryTarget: 'commonjs2',
+        target: 'node',
       },
     ],
   },
@@ -275,7 +284,7 @@ const modules = gulp.parallel(
       function modulesTask() {
         return gulp
           .src(INCLUDE_GLOBS, {
-            cwd: path.join(PACKAGES, build.package),
+            cwd: path.join(PACKAGES, build.sourcePackage || build.package),
           })
           .pipe(babel(babelOptions))
           .pipe(gulp.dest(path.join(DIST, build.package, 'lib')));
@@ -289,7 +298,7 @@ const flowDefs = gulp.parallel(
       function modulesTask() {
         return gulp
           .src(['**/*.js', '!**/__tests__/**/*.js', '!**/__mocks__/**/*.js'], {
-            cwd: PACKAGES + '/' + build.package,
+            cwd: PACKAGES + '/' + build.sourcePackage || build.package,
           })
           .pipe(rename({extname: '.js.flow'}))
           .pipe(gulp.dest(path.join(DIST, build.package)));
@@ -308,14 +317,14 @@ builds.forEach(build => {
     function copyTestschema() {
       return gulp
         .src(['*.graphql'], {
-          cwd: path.join(PACKAGES, build.package),
+          cwd: path.join(PACKAGES, build.sourcePackage || build.package),
         })
         .pipe(gulp.dest(path.join(DIST, build.package, 'lib')));
     },
     function copyPackageJSON() {
       return gulp
         .src(['package.json'], {
-          cwd: path.join(PACKAGES, build.package),
+          cwd: path.join(PACKAGES, build.sourcePackage || build.package),
         })
         .pipe(gulp.dest(path.join(DIST, build.package)));
     },
@@ -350,7 +359,7 @@ builds.forEach(build => {
     build.bins.forEach(bin => {
       binsTasks.push(function binsTask() {
         return gulp
-          .src(path.join(DIST, build.package, 'lib', 'bin', bin.entry))
+          .src(path.join(DIST, build.sourcePackage || build.package, 'lib', 'bin', bin.entry))
           .pipe(buildDist(bin.output, bin, /* isProduction */ false))
           .pipe(header(SCRIPT_HASHBANG + PRODUCTION_HEADER))
           .pipe(chmod(0o755))
@@ -366,7 +375,7 @@ builds.forEach(build => {
   build.bundles.forEach(bundle => {
     bundlesTasks.push(function bundleTask() {
       return gulp
-        .src(path.join(DIST, build.package, 'lib', bundle.entry))
+        .src(path.join(DIST, build.sourcePackage || build.package, 'lib', bundle.entry))
         .pipe(
           buildDist(bundle.output + '.js', bundle, /* isProduction */ false),
         )
@@ -382,7 +391,7 @@ builds.forEach(build => {
   build.bundles.forEach(bundle => {
     bundlesMinTasks.push(function bundlesMinTask() {
       return gulp
-        .src(path.join(DIST, build.package, 'lib', bundle.entry))
+        .src(path.join(DIST, build.sourcePackage || build.package, 'lib', bundle.entry))
         .pipe(
           buildDist(bundle.output + '.min.js', bundle, /* isProduction */ true),
         )
