@@ -328,12 +328,17 @@ builds.forEach(build => {
         .src(['package.json'], {
           cwd: path.join(PACKAGES, build.sourcePackage || build.package),
         })
-        .pipe(gulpIf(build.sourcePackage !== undefined, jeditor({
-          name: build.package,
-          repository: 'tthordarson/relay',
-          homepage: 'https://github.com/tthordarson/relay',
-          bugs: 'https://github.com/tthordarson/relay/issues',
-        })))
+        .pipe(
+          gulpIf(
+            build.sourcePackage !== undefined,
+            jeditor({
+              name: build.package,
+              repository: 'tthordarson/relay',
+              homepage: 'https://github.com/tthordarson/relay',
+              bugs: 'https://github.com/tthordarson/relay/issues',
+            }),
+          ),
+        )
         .pipe(gulp.dest(path.join(DIST, build.package)));
     },
   );
@@ -367,7 +372,15 @@ builds.forEach(build => {
     build.bins.forEach(bin => {
       binsTasks.push(function binsTask() {
         return gulp
-          .src(path.join(DIST, build.sourcePackage || build.package, 'lib', 'bin', bin.entry))
+          .src(
+            path.join(
+              DIST,
+              build.sourcePackage || build.package,
+              'lib',
+              'bin',
+              bin.entry,
+            ),
+          )
           .pipe(buildDist(bin.output, bin, /* isProduction */ false))
           .pipe(header(SCRIPT_HASHBANG + PRODUCTION_HEADER))
           .pipe(chmod(0o755))
@@ -383,7 +396,14 @@ builds.forEach(build => {
   build.bundles.forEach(bundle => {
     bundlesTasks.push(function bundleTask() {
       return gulp
-        .src(path.join(DIST, build.sourcePackage || build.package, 'lib', bundle.entry))
+        .src(
+          path.join(
+            DIST,
+            build.sourcePackage || build.package,
+            'lib',
+            bundle.entry,
+          ),
+        )
         .pipe(
           buildDist(bundle.output + '.js', bundle, /* isProduction */ false),
         )
@@ -399,7 +419,14 @@ builds.forEach(build => {
   build.bundles.forEach(bundle => {
     bundlesMinTasks.push(function bundlesMinTask() {
       return gulp
-        .src(path.join(DIST, build.sourcePackage || build.package, 'lib', bundle.entry))
+        .src(
+          path.join(
+            DIST,
+            build.sourcePackage || build.package,
+            'lib',
+            bundle.entry,
+          ),
+        )
         .pipe(
           buildDist(bundle.output + '.min.js', bundle, /* isProduction */ true),
         )
