@@ -41,6 +41,7 @@ const jeditor = require('gulp-json-editor');
 const webpack = require('webpack');
 const webpackStream = require('webpack-stream');
 const ModuleReplaceWebpackPlugin = require('module-replace-webpack-plugin');
+const packageOverrides = require('./package_overrides.json');
 
 const RELEASE_COMMIT_SHA = process.env.RELEASE_COMMIT_SHA;
 if (RELEASE_COMMIT_SHA && RELEASE_COMMIT_SHA.length !== 40) {
@@ -331,12 +332,14 @@ builds.forEach(build => {
         .pipe(
           gulpIf(
             build.sourcePackage !== undefined,
-            jeditor({
-              name: build.package,
-              repository: 'tthordarson/relay',
-              homepage: 'https://github.com/tthordarson/relay',
-              bugs: 'https://github.com/tthordarson/relay/issues',
-            }),
+            jeditor(
+              Object.assign(
+                {
+                  name: build.package,
+                },
+                packageOverrides,
+              ),
+            ),
           ),
         )
         .pipe(gulp.dest(path.join(DIST, build.package)));
