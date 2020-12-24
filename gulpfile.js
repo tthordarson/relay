@@ -36,6 +36,8 @@ const gulpUtil = require('gulp-util');
 const header = require('gulp-header');
 const path = require('path');
 const rename = require('gulp-rename');
+const gulpIf = require('gulp-if');
+const jeditor = require('gulp-json-editor');
 const webpack = require('webpack');
 const webpackStream = require('webpack-stream');
 const ModuleReplaceWebpackPlugin = require('module-replace-webpack-plugin');
@@ -326,6 +328,12 @@ builds.forEach(build => {
         .src(['package.json'], {
           cwd: path.join(PACKAGES, build.sourcePackage || build.package),
         })
+        .pipe(gulpIf(build.sourcePackage !== undefined, jeditor({
+          name: build.package,
+          repository: 'tthordarson/relay',
+          homepage: 'https://github.com/tthordarson/relay',
+          bugs: 'https://github.com/tthordarson/relay/issues',
+        })))
         .pipe(gulp.dest(path.join(DIST, build.package)));
     },
   );
