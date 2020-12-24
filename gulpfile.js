@@ -38,6 +38,7 @@ const path = require('path');
 const rename = require('gulp-rename');
 const webpack = require('webpack');
 const webpackStream = require('webpack-stream');
+const ModuleReplaceWebpackPlugin = require('module-replace-webpack-plugin');
 
 const RELEASE_COMMIT_SHA = process.env.RELEASE_COMMIT_SHA;
 if (RELEASE_COMMIT_SHA && RELEASE_COMMIT_SHA.length !== 40) {
@@ -97,6 +98,18 @@ const buildDist = function(filename, opts, isProduction) {
       minimize: true,
     };
   }
+  if (opts.noInvariant) {
+    webpackOpts.plugins.push(
+      new ModuleReplaceWebpackPlugin({
+        modules: [
+          {
+            test: /invariant/,
+            replace: path.join(OVERRIDES, 'invariant.js'),
+          },
+        ],
+      }),
+    );
+  }
   return webpackStream(webpackOpts, webpack, function(err, stats) {
     if (err) {
       throw new gulpUtil.PluginError('webpack', err);
@@ -110,6 +123,7 @@ const buildDist = function(filename, opts, isProduction) {
 // Paths from package-root
 const PACKAGES = 'packages';
 const DIST = 'dist';
+const OVERRIDES = 'overrides';
 
 // Globs for paths in PACKAGES
 const INCLUDE_GLOBS = [
@@ -166,6 +180,15 @@ const builds = [
         target: 'node',
         noMinify: true, // Note: uglify can't yet handle modern JS
       },
+      {
+        entry: 'index.js',
+        output: 'relay-compiler-noinvariant',
+        libraryName: 'RelayCompiler',
+        libraryTarget: 'commonjs2',
+        target: 'node',
+        noMinify: true, // Note: uglify can't yet handle modern JS
+        noInvariant: true,
+      },
     ],
     bins: [
       {
@@ -173,6 +196,13 @@ const builds = [
         output: 'relay-compiler',
         libraryTarget: 'commonjs2',
         target: 'node',
+      },
+      {
+        entry: 'RelayCompilerBin.js',
+        output: 'relay-compiler-noinvariant',
+        libraryTarget: 'commonjs2',
+        target: 'node',
+        noinvariant: true,
       },
     ],
   },

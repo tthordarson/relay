@@ -5334,6 +5334,11 @@ mkdirp@^0.5.1, mkdirp@^0.5.3:
   dependencies:
     minimist "^1.2.5"
 
+module-replace-webpack-plugin@^0.0.12:
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/module-replace-webpack-plugin/-/module-replace-webpack-plugin-0.0.12.tgz#123e1d519841449b86193f13723c111eea5536ef"
+  integrity sha512-2Bw9YNAtD7rVZeXi0KrnjX9Dfi6XYSnNF6hmGcFk3hAVRiUX1UpZpsYHt+C3l0n3ruQc6BeE+MRKS19NcBi5/Q==
+
 move-concurrently@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/move-concurrently/-/move-concurrently-1.0.1.tgz#be2c005fda32e0b29af1f05d7c4b33214c701f92"
