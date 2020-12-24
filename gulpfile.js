@@ -219,6 +219,12 @@ const builds = [
         noInvariant: true,
       },
     ],
+    packageJsonOverrides: function(packageJson) {
+      packageJson.bin = {
+        'relay-compiler-noinvariant': 'bin/relay-compiler',
+      };
+      return packageJson;
+    },
   },
   {
     package: 'relay-runtime',
@@ -342,6 +348,12 @@ builds.forEach(build => {
                 packageOverrides,
               ),
             ),
+          ),
+        )
+        .pipe(
+          gulpIf(
+            build.packageJsonOverrides !== undefined,
+            jeditor(build.packageJsonOverrides || {}),
           ),
         )
         .pipe(gulp.dest(path.join(DIST, build.package)));
