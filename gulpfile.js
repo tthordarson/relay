@@ -206,7 +206,8 @@ const builds = [
         libraryName: 'RelayCompiler',
         libraryTarget: 'commonjs2',
         target: 'node',
-        noMinify: true, // Note: uglify can't yet handle modern JS
+        noMinify: true, // Note: uglify can't yet handle modern JS,
+        noInvariant: true,
       },
     ],
     bins: [
@@ -215,6 +216,7 @@ const builds = [
         output: 'relay-compiler',
         libraryTarget: 'commonjs2',
         target: 'node',
+        noInvariant: true,
       },
     ],
   },
