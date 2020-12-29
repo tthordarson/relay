@@ -36,8 +36,12 @@ const gulpUtil = require('gulp-util');
 const header = require('gulp-header');
 const path = require('path');
 const rename = require('gulp-rename');
+const replace = require('gulp-replace');
+const gulpIf = require('gulp-if');
+const jeditor = require('gulp-json-editor');
 const webpack = require('webpack');
 const webpackStream = require('webpack-stream');
+const packageOverrides = require('./package_overrides.json');
 
 const RELEASE_COMMIT_SHA = process.env.RELEASE_COMMIT_SHA;
 if (RELEASE_COMMIT_SHA && RELEASE_COMMIT_SHA.length !== 40) {
@@ -97,6 +101,7 @@ const buildDist = function(filename, opts, isProduction) {
       minimize: true,
     };
   }
+
   return webpackStream(webpackOpts, webpack, function(err, stats) {
     if (err) {
       throw new gulpUtil.PluginError('webpack', err);
@@ -110,6 +115,7 @@ const buildDist = function(filename, opts, isProduction) {
 // Paths from package-root
 const PACKAGES = 'packages';
 const DIST = 'dist';
+const OVERRIDES = 'overrides';
 
 // Globs for paths in PACKAGES
 const INCLUDE_GLOBS = [
@@ -175,6 +181,38 @@ const builds = [
         target: 'node',
       },
     ],
+  },
+  {
+    package: 'relay-compiler-noinvariant',
+    sourcePackage: 'relay-compiler',
+    exports: {
+      index: 'index.js',
+    },
+    bundles: [
+      {
+        entry: 'index.js',
+        output: 'relay-compiler',
+        libraryName: 'RelayCompiler',
+        libraryTarget: 'commonjs2',
+        target: 'node',
+        noMinify: true, // Note: uglify can't yet handle modern JS,
+      },
+    ],
+    bins: [
+      {
+        entry: 'RelayCompilerBin.js',
+        output: 'relay-compiler',
+        libraryTarget: 'commonjs2',
+        target: 'node',
+      },
+    ],
+    noInvariant: true,
+    packageJsonOverrides: function(packageJson) {
+      packageJson.bin = {
+        'relay-compiler-noinvariant': 'bin/relay-compiler',
+      };
+      return packageJson;
+    },
   },
   {
     package: 'relay-runtime',
@@ -245,12 +283,41 @@ const modules = gulp.parallel(
       function modulesTask() {
         return gulp
           .src(INCLUDE_GLOBS, {
-            cwd: path.join(PACKAGES, build.package),
+            cwd: path.join(PACKAGES, build.sourcePackage || build.package),
           })
           .pipe(babel(babelOptions))
+          .pipe(
+            gulpIf(
+              build.noInvariant === true,
+              replace('fbjs/lib/invariant', function() {
+                return path.relative(
+                  path.dirname(this.file.relative),
+                  'overrides/invariant.js',
+                );
+              }),
+            ),
+          )
           .pipe(gulp.dest(path.join(DIST, build.package, 'lib')));
       },
   ),
+);
+
+const copyOverrides = gulp.parallel(
+  ...builds
+    .filter(build => build.noInvariant === true)
+    .map(
+      build =>
+        function copyOverridesTask() {
+          return gulp
+            .src(INCLUDE_GLOBS, {
+              cwd: OVERRIDES,
+            })
+            .pipe(babel(babelOptions))
+            .pipe(
+              gulp.dest(path.join(DIST, build.package, 'lib', 'overrides')),
+            );
+        },
+    ),
 );
 
 const flowDefs = gulp.parallel(
@@ -259,7 +326,7 @@ const flowDefs = gulp.parallel(
       function modulesTask() {
         return gulp
           .src(['**/*.js', '!**/__tests__/**/*.js', '!**/__mocks__/**/*.js'], {
-            cwd: PACKAGES + '/' + build.package,
+            cwd: PACKAGES + '/' + (build.sourcePackage || build.package),
           })
           .pipe(rename({extname: '.js.flow'}))
           .pipe(gulp.dest(path.join(DIST, build.package)));
@@ -278,15 +345,34 @@ builds.forEach(build => {
     function copyTestschema() {
       return gulp
         .src(['*.graphql'], {
-          cwd: path.join(PACKAGES, build.package),
+          cwd: path.join(PACKAGES, build.sourcePackage || build.package),
         })
         .pipe(gulp.dest(path.join(DIST, build.package, 'lib')));
     },
     function copyPackageJSON() {
       return gulp
         .src(['package.json'], {
-          cwd: path.join(PACKAGES, build.package),
+          cwd: path.join(PACKAGES, build.sourcePackage || build.package),
         })
+        .pipe(
+          gulpIf(
+            build.sourcePackage !== undefined,
+            jeditor(
+              Object.assign(
+                {
+                  name: build.package,
+                },
+                packageOverrides,
+              ),
+            ),
+          ),
+        )
+        .pipe(
+          gulpIf(
+            build.packageJsonOverrides !== undefined,
+            jeditor(build.packageJsonOverrides || {}),
+          ),
+        )
         .pipe(gulp.dest(path.join(DIST, build.package)));
     },
   );
@@ -297,6 +383,7 @@ const exportsFiles = gulp.series(
   copyFiles,
   flowDefs,
   modules,
+  copyOverrides,
   gulp.parallel(
     ...builds.map(
       build =>
