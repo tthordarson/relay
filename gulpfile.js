@@ -40,7 +40,6 @@ const gulpIf = require('gulp-if');
 const jeditor = require('gulp-json-editor');
 const webpack = require('webpack');
 const webpackStream = require('webpack-stream');
-const ModuleReplaceWebpackPlugin = require('module-replace-webpack-plugin');
 const packageOverrides = require('./package_overrides.json');
 
 const RELEASE_COMMIT_SHA = process.env.RELEASE_COMMIT_SHA;
