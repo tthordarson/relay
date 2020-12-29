@@ -102,17 +102,18 @@ const buildDist = function(filename, opts, isProduction) {
     };
   }
   if (opts.noInvariant) {
-    webpackOpts.plugins.push(
-      new ModuleReplaceWebpackPlugin({
-        modules: [
-          {
-            test: /invariant/,
-            replace: path.join(OVERRIDES, 'invariant.js'),
-          },
-        ],
-      }),
-    );
+    const standardExternals = webpackOpts.externals.slice(0);
+    webpackOpts.externals = [
+      function(context, request, callback) {
+        if (/fbjs\/lib\/invariant/.test(request)) {
+          return callback(null, 'commonjs ./overrides/invariant.js');
+        }
+
+        callback();
+      },
+    ].concat(standardExternals);
   }
+
   return webpackStream(webpackOpts, webpack, function(err, stats) {
     if (err) {
       throw new gulpUtil.PluginError('webpack', err);
