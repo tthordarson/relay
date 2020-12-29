@@ -10,9 +10,9 @@ use crate::{
     goto_definition::on_goto_definition,
     hover::on_hover,
     lsp::{
-        set_ready_status, set_starting_status, CompletionOptions, Connection, GotoDefinition,
-        HoverRequest, InitializeParams, Message, ServerCapabilities, ServerResponse,
-        TextDocumentSyncCapability, TextDocumentSyncKind, WorkDoneProgressOptions,
+        set_actual_server_status, set_starting_status, CompletionOptions, Connection,
+        GotoDefinition, HoverRequest, InitializeParams, Message, ServerCapabilities,
+        ServerResponse, TextDocumentSyncCapability, TextDocumentSyncKind, WorkDoneProgressOptions,
     },
     lsp_process_error::{LSPProcessError, LSPProcessResult},
     references::on_references,
@@ -34,14 +34,14 @@ use lsp_types::{
     request::{Completion, References, Shutdown},
 };
 use relay_compiler::config::Config;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 mod lsp_request_dispatch;
 use lsp_request_dispatch::LSPRequestDispatch;
 mod lsp_notification_dispatch;
 use lsp_notification_dispatch::LSPNotificationDispatch;
 mod lsp_state;
 pub use lsp_state::LSPExtraDataProvider;
-pub(crate) use lsp_state::LSPState;
+pub(crate) use lsp_state::{LSPState, LSPStateError};
 
 /// Initializes an LSP connection, handling the `initialize` message and `initialized` notification
 /// handshake.
@@ -86,20 +86,24 @@ where
     );
     set_starting_status(&connection.sender);
 
+    let lsp_state_errors: Arc<RwLock<Vec<LSPStateError>>> = Default::default();
+
     config.status_reporter = Box::new(LSPStatusReporter::new(
         config.root_dir.clone(),
         connection.sender.clone(),
+        Arc::clone(&lsp_state_errors),
     ));
 
     let mut lsp_state = LSPState::create_state(
         Arc::new(config),
+        lsp_state_errors,
         extra_data_provider,
         Arc::clone(&perf_logger),
     )
     .await?;
 
     // At this point we're ready to provide hover/complete/go_to_definition capabilities
-    set_ready_status(&connection.sender);
+    set_actual_server_status(&connection.sender, &lsp_state.get_errors());
 
     // And now we can listen for messages and notification
     for msg in connection.receiver {
@@ -176,7 +180,6 @@ fn with_request_logging<'a, TPerfLogger: PerfLogger + 'static>(
             lsp_request_event.string("lsp_outcome", "success".to_string());
         } else if let Some(error) = &response.error {
             lsp_request_event.string("lsp_outcome", "error".to_string());
-            lsp_request_event.number("lsp_error_code", error.code as usize);
             if let Some(data) = &error.data {
                 lsp_request_event.string("lsp_error_data", data.to_string());
             }
@@ -208,7 +211,6 @@ fn handle_notification<TPerfLogger: PerfLogger + 'static>(
     // N.B. is_ok is correct here.
     if notification_result.is_ok() {
         lsp_notification_event.string("lsp_outcome", "error".to_string());
-        lsp_notification_event.number("lsp_error_code", ErrorCode::MethodNotFound as usize);
     }
 
     lsp_notification_event.stop(lsp_notification_processing_time);

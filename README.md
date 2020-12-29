@@ -1,3 +1,7 @@
+# IMPORTANT
+
+This fork is for a custom build of ```relay-compiler``` which I created out of my own need when compiling GraphQL queries which contain nested arguments as they result in errors while otherwise being perfectly valid. I discovered that it's safe to remove the invariant calls and by reading Github discussions from Facebook it's clear to me that they have no intention of changing their implementation (https://github.com/facebook/relay/pull/1708). As I wanted to be able to write GraphQL queries using nested arguments I ended up creating a custom build of ```relay-compiler```.
+
 # [Relay](https://relay.dev) &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/facebook/relay/blob/master/LICENSE) [![npm version](https://img.shields.io/npm/v/react-relay.svg??style=flat)](https://www.npmjs.com/package/react-relay)
 
 Relay is a JavaScript framework for building data-driven React applications.
