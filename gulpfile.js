@@ -36,6 +36,7 @@ const gulpUtil = require('gulp-util');
 const header = require('gulp-header');
 const path = require('path');
 const rename = require('gulp-rename');
+const replace = require('gulp-replace');
 const gulpIf = require('gulp-if');
 const jeditor = require('gulp-json-editor');
 const webpack = require('webpack');
@@ -99,18 +100,6 @@ const buildDist = function(filename, opts, isProduction) {
     webpackOpts.optimization = {
       minimize: true,
     };
-  }
-  if (opts.noInvariant) {
-    const standardExternals = webpackOpts.externals.slice(0);
-    webpackOpts.externals = [
-      function(context, request, callback) {
-        if (/fbjs\/lib\/invariant/.test(request)) {
-          return callback(null, 'commonjs ./overrides/invariant.js');
-        }
-
-        callback();
-      },
-    ].concat(standardExternals);
   }
 
   return webpackStream(webpackOpts, webpack, function(err, stats) {
@@ -207,7 +196,6 @@ const builds = [
         libraryTarget: 'commonjs2',
         target: 'node',
         noMinify: true, // Note: uglify can't yet handle modern JS,
-        noInvariant: true,
       },
     ],
     bins: [
@@ -216,9 +204,9 @@ const builds = [
         output: 'relay-compiler',
         libraryTarget: 'commonjs2',
         target: 'node',
-        noInvariant: true,
       },
     ],
+    noInvariant: true,
     packageJsonOverrides: function(packageJson) {
       packageJson.bin = {
         'relay-compiler-noinvariant': 'bin/relay-compiler',
@@ -298,6 +286,17 @@ const modules = gulp.parallel(
             cwd: path.join(PACKAGES, build.sourcePackage || build.package),
           })
           .pipe(babel(babelOptions))
+          .pipe(
+            gulpIf(
+              build.noInvariant === true,
+              replace('fbjs/lib/invariant', function() {
+                return path.relative(
+                  path.dirname(this.file.relative),
+                  'overrides/invariant.js',
+                );
+              }),
+            ),
+          )
           .pipe(gulp.dest(path.join(DIST, build.package, 'lib')));
       },
   ),
@@ -305,12 +304,7 @@ const modules = gulp.parallel(
 
 const copyOverrides = gulp.parallel(
   ...builds
-    .filter(
-      build =>
-        (build.bundles &&
-          build.bundles.some(bundle => bundle.noInvariant === true)) ||
-        (build.bins && build.bins.some(bin => bin.noInvariant === true)),
-    )
+    .filter(build => build.noInvariant === true)
     .map(
       build =>
         function copyOverridesTask() {
