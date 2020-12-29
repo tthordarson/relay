@@ -413,15 +413,7 @@ builds.forEach(build => {
     build.bins.forEach(bin => {
       binsTasks.push(function binsTask() {
         return gulp
-          .src(
-            path.join(
-              DIST,
-              build.sourcePackage || build.package,
-              'lib',
-              'bin',
-              bin.entry,
-            ),
-          )
+          .src(path.join(DIST, build.package, 'lib', 'bin', bin.entry))
           .pipe(buildDist(bin.output, bin, /* isProduction */ false))
           .pipe(header(SCRIPT_HASHBANG + PRODUCTION_HEADER))
           .pipe(chmod(0o755))
@@ -437,14 +429,7 @@ builds.forEach(build => {
   build.bundles.forEach(bundle => {
     bundlesTasks.push(function bundleTask() {
       return gulp
-        .src(
-          path.join(
-            DIST,
-            build.sourcePackage || build.package,
-            'lib',
-            bundle.entry,
-          ),
-        )
+        .src(path.join(DIST, build.package, 'lib', bundle.entry))
         .pipe(
           buildDist(bundle.output + '.js', bundle, /* isProduction */ false),
         )
@@ -460,14 +445,7 @@ builds.forEach(build => {
   build.bundles.forEach(bundle => {
     bundlesMinTasks.push(function bundlesMinTask() {
       return gulp
-        .src(
-          path.join(
-            DIST,
-            build.sourcePackage || build.package,
-            'lib',
-            bundle.entry,
-          ),
-        )
+        .src(path.join(DIST, build.package, 'lib', bundle.entry))
         .pipe(
           buildDist(bundle.output + '.min.js', bundle, /* isProduction */ true),
         )
