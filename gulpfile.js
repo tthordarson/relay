@@ -303,6 +303,29 @@ const modules = gulp.parallel(
   ),
 );
 
+const copyOverrides = gulp.parallel(
+  ...builds
+    .filter(
+      build =>
+        (build.bundles &&
+          build.bundles.some(bundle => bundle.noInvariant === true)) ||
+        (build.bins && build.bins.some(bin => bin.noInvariant === true)),
+    )
+    .map(
+      build =>
+        function copyOverridesTask() {
+          return gulp
+            .src(INCLUDE_GLOBS, {
+              cwd: OVERRIDES,
+            })
+            .pipe(babel(babelOptions))
+            .pipe(
+              gulp.dest(path.join(DIST, build.package, 'lib', 'overrides')),
+            );
+        },
+    ),
+);
+
 const flowDefs = gulp.parallel(
   ...builds.map(
     build =>
@@ -366,6 +389,7 @@ const exportsFiles = gulp.series(
   copyFiles,
   flowDefs,
   modules,
+  copyOverrides,
   gulp.parallel(
     ...builds.map(
       build =>
