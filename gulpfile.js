@@ -309,7 +309,7 @@ const flowDefs = gulp.parallel(
       function modulesTask() {
         return gulp
           .src(['**/*.js', '!**/__tests__/**/*.js', '!**/__mocks__/**/*.js'], {
-            cwd: PACKAGES + '/' + build.sourcePackage || build.package,
+            cwd: PACKAGES + '/' + (build.sourcePackage || build.package),
           })
           .pipe(rename({extname: '.js.flow'}))
           .pipe(gulp.dest(path.join(DIST, build.package)));
